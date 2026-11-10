@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0f14">
+<title>Staylixxis Sandbox</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230d0f14'/><text y='68' x='50' text-anchor='middle' font-size='52' font-family='Arial Black,sans-serif' fill='%23e8b89d'>S</text></svg>">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    user-select: none;
+  }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d0f14;
+    font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #e8eaed;
+  }
+
+  /* ===== SPLASH ===== */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: #0d0f14;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.7s ease, visibility 0.7s;
+  }
+  #splash.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .splash-logo {
+    width: 90px;
+    height: 90px;
+    border: 2px solid #e8b89d;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 800;
+    color: #e8b89d;
+    letter-spacing: -2px;
+    margin-bottom: 28px;
+    background: linear-gradient(145deg, #1a1d26, #0d0f14);
+    box-shadow: 0 0 40px rgba(232,184,157,0.15);
+  }
+  .splash-title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #e8eaed;
+  }
+  .splash-sub {
+    margin-top: 8px;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #6b7280;
+    text-transform: uppercase;
+  }
+  .splash-bar {
+    width: 120px;
+    height: 2px;
+    background: #1f2430;
+    margin-top: 36px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .splash-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #e8b89d;
+    transition: width 1.4s ease;
+  }
+
+  /* ===== ORIENTATION ===== */
+  #orient {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0d0f14;
+    z-index: 900;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+  #orient.show { display: flex; }
+  #orient .sym {
+    font-size: 42px;
+    color: #e8b89d;
+    margin-bottom: 18px;
+    font-weight: 300;
+  }
+  #orient p {
+    font-size: 15px;
+    color: #9ca3af;
+    letter-spacing: 1px;
+  }
+
+  /* ===== GAME ===== */
+  #game {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ===== SIDE PANEL / CRATE ===== */
+  #crate {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 64px;
+    height: 180px;
+    background: linear-gradient(180deg, #1c2029 0%, #14171e 100%);
+    border: 1px solid #2a303c;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    z-index: 20;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .crate-item {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #252a35;
+    border: 1px solid #343b4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .crate-item:active {
+    background: #2f3644;
+    transform: scale(0.94);
+  }
+  .crate-item.human { color: #e8b89d; border-color: #4a3f35; }
+  .crate-item.box   { color: #c4a574; border-color: #4a3f2e; }
+  .crate-item.gun   { color: #94a3b8; border-color: #3a4555; }
+  .crate-item.clear { color: #f87171; border-color: #4a2c2c; }
+
+  /* Hint */
+  #hint {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #6b7280;
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">S</div>
+  <div class="splash-title">Staylixxis</div>
+  <div class="splash-sub">Company</div>
+  <div class="splash-bar"><div class="splash-bar-fill" id="barFill"></div></div>
+</div>
+
+<!-- ORIENTATION -->
+<div id="orient">
+  <div class="sym">▣</div>
+  <p>Поверни устройство<br>в горизонтальный режим</p>
+</div>
+
+<!-- GAME -->
+<div id="game"></div>
+<div id="hint">Тяни тело · Бери предметы справа</div>
+
+<!-- CRATE (inventory) -->
+<div id="crate">
+  <div class="crate-item human" data-type="human" title="Человек">HUM</div>
+  <div class="crate-item box"   data-type="box"   title="Ящик">BOX</div>
+  <div class="crate-item gun"   data-type="gun"   title="Стрельба">GUN</div>
+  <div class="crate-item clear" data-type="clear" title="Очистить">CLR</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+(function () {
+  const { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Mouse, MouseConstraint, Events } = Matter;
+
+  // ---------- Splash ----------
+  const splash = document.getElementById('splash');
+  const bar = document.getElementById('barFill');
+  requestAnimationFrame(() => { bar.style.width = '100%'; });
+  setTimeout(() => splash.classList.add('hide'), 1600);
+
+  // ---------- Orientation ----------
+  function checkOrient() {
+    const el = document.getElementById('orient');
+    if (window.innerHeight > window.innerWidth + 40) el.classList.add('show');
+    else el.classList.remove('show');
+  }
+  window.addEventListener('resize', checkOrient);
+  window.addEventListener('orientationchange', () => setTimeout(checkOrient, 250));
+  checkOrient();
+
+  // ---------- Size ----------
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+
+  // ---------- Engine ----------
+  const engine = Engine.create({ gravity: { x: 0, y: 1.15 } });
+  const world = engine.world;
+
+  const render = Render.create({
+    element: document.getElementById('game'),
+    engine,
+    options: {
+      width: W,
+      height: H,
+      wireframes: false,
+      background: '#12151c',
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+    }
+  });
+  Render.run(render);
+  const runner = Runner.create();
+  Runner.run(runner, engine);
+
+  // ---------- Grid background (drawn on canvas) ----------
+  function drawGrid() {
+    const ctx = render.context;
+    const step = 40;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  Events.on(render, 'afterRender', drawGrid);
+
+  // ---------- Bounds ----------
+  function makeBounds() {
+    const t = 100;
+    const opts = { isStatic: true, render: { visible: false } };
+    Composite.add(world, [
+      Bodies.rectangle(W / 2, H + t / 2 - 6, W + 400, t, { isStatic: true, friction: 0.9, render: { fillStyle: '#1a1e27' } }),
+      Bodies.rectangle(-t / 2, H / 2, t, H + 400, opts),
+      Bodies.rectangle(W + t / 2, H / 2, t, H + 400, opts),
+      Bodies.rectangle(W / 2, -t / 2, W + 400, t, opts)
+    ]);
+  }
+  makeBounds();
+
+  // ---------- Human (improved balance) ----------
+  function createHuman(x, y, scale = 0.9) {
+    const g = Body.nextGroup(true);
+
+    const skin = '#e0b090';
+    const shirt = '#3d5a80';
+    const pants = '#2b3544';
+    const shoe = '#1e2430';
+
+    // Head
+    const head = Bodies.circle(x, y - 58 * scale, 16.5 * scale, {
+      collisionFilter: { group: g },
+      density: 0.001,
+      friction: 0.5,
+      restitution: 0.15,
+      render: { fillStyle: skin }
+    });
+
+    // Torso (slightly lower CoM)
+    const torso = Bodies.rectangle(x, y - 2 * scale, 34 * scale, 48 * scale, {
+      collisionFilter: { group: g },
+      density: 0.0024,
+      friction: 0.5,
+      chamfer: { radius: 7 },
+      render: { fillStyle: shirt }
+    });
+
+    // Arms
+    const uArmL = Bodies.rectangle(x - 26 * scale, y - 10 * scale, 11 * scale, 26 * scale, {
+      collisionFilter: { group: g }, density: 0.0007, friction: 0.35, render: { fillStyle: skin }
+    });
+    const lArmL = Bodies.rectangle(x - 26 * scale, y + 18 * scale, 10 * scale, 24 * scale, {
+      collisionFilter: { group: g }, density: 0.0006, friction: 0.35, render: { fillStyle: skin }
+    });
+    const uArmR = Bodies.rectangle(x + 26 * scale, y - 10 * scale, 11 * scale, 26 * scale, {
+      collisionFilter: { group: g }, density: 0.0007, friction: 0.35, render: { fillStyle: skin }
+    });
+    const lArmR = Bodies.rectangle(x + 26 * scale, y + 18 * scale, 10 * scale, 24 * scale, {
+      collisionFilter: { group: g }, density: 0.0006, friction: 0.35, render: { fillStyle: skin }
+    });
+
+    // Legs (stronger for standing)
+    const uLegL = Bodies.rectangle(x - 11 * scale, y + 42 * scale, 13 * scale, 30 * scale, {
+      collisionFilter: { group: g }, density: 0.0013, friction: 0.6, render: { fillStyle: pants }
+    });
+    const lLegL = Bodies.rectangle(x - 11 * scale, y + 74 * scale, 12 * scale, 28 * scale, {
+      collisionFilter: { group: g }, density: 0.0011, friction: 0.7, render: { fillStyle: pants }
+    });
+    const uLegR = Bodies.rectangle(x + 11 * scale, y + 42 * scale, 13 * scale, 30 * scale, {
+      collisionFilter: { group: g }, density: 0.0013, friction: 0.6, render: { fillStyle: pants }
+    });
+    const lLegR = Bodies.rectangle(x + 11 * scale, y + 74 * scale, 12 * scale, 28 * scale, {
+      collisionFilter: { group: g }, density: 0.0011, friction: 0.7, render: { fillStyle: pants }
+    });
+
+    // Feet (extra friction)
+    const footL = Bodies.rectangle(x - 11 * scale, y + 92 * scale, 16 * scale, 8 * scale, {
+      collisionFilter: { group: g }, density: 0.001, friction: 1.2, render: { fillStyle: shoe }
+    });
+    const footR = Bodies.rectangle(x + 11 * scale, y + 92 * scale, 16 * scale, 8 * scale, {
+      collisionFilter: { group: g }, density: 0.001, friction: 1.2, render: { fillStyle: shoe }
+    });
+
+    const stiff = 0.75;
+    const damp = 0.05;
+
+    const joints = [
+      // Head
+      Constraint.create({ bodyA: head, bodyB: torso, pointA: { x: 0, y: 15 * scale }, pointB: { x: 0, y: -23 * scale }, stiffness: 0.85, damping: damp, length: 1, render: { visible: false } }),
+
+      // Arms
+      Constraint.create({ bodyA: torso, bodyB: uArmL, pointA: { x: -17 * scale, y: -16 * scale }, pointB: { x: 0, y: -11 * scale }, stiffness: 0.55, damping: damp, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: uArmL, bodyB: lArmL, pointA: { x: 0, y: 11 * scale }, pointB: { x: 0, y: -10 * scale }, stiffness: 0.5, damping: damp, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: torso, bodyB: uArmR, pointA: { x: 17 * scale, y: -16 * scale }, pointB: { x: 0, y: -11 * scale }, stiffness: 0.55, damping: damp, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: uArmR, bodyB: lArmR, pointA: { x: 0, y: 11 * scale }, pointB: { x: 0, y: -10 * scale }, stiffness: 0.5, damping: damp, length: 2, render: { visible: false } }),
+
+      // Legs (stiffer for balance)
+      Constraint.create({ bodyA: torso, bodyB: uLegL, pointA: { x: -9 * scale, y: 22 * scale }, pointB: { x: 0, y: -13 * scale }, stiffness: stiff, damping: damp, length: 1, render: { visible: false } }),
+      Constraint.create({ bodyA: uLegL, bodyB: lLegL, pointA: { x: 0, y: 13 * scale }, pointB: { x: 0, y: -12 * scale }, stiffness: stiff, damping: damp, length: 1, render: { visible: false } }),
+      Constraint.create({ bodyA: lLegL, bodyB: footL, pointA: { x: 0, y: 12 * scale }, pointB: { x: 0, y: -3 * scale }, stiffness: 0.9, damping: damp, length: 1, render: { visible: false } }),
+
+      Constraint.create({ bodyA: torso, bodyB: uLegR, pointA: { x: 9 * scale, y: 22 * scale }, pointB: { x: 0, y: -13 * scale }, stiffness: stiff, damping: damp, length: 1, render: { visible: false } }),
+      Constraint.create({ bodyA: uLegR, bodyB: lLegR, pointA: { x: 0, y: 13 * scale }, pointB: { x: 0, y: -12 * scale }, stiffness: stiff, damping: damp, length: 1, render: { visible: false } }),
+      Constraint.create({ bodyA: lLegR, bodyB: footR, pointA: { x: 0, y: 12 * scale }, pointB: { x: 0, y: -3 * scale }, stiffness: 0.9, damping: damp, length: 1, render: { visible: false } }),
+
+      // Light leg-to-leg stabilizer (helps standing)
+      Constraint.create({ bodyA: lLegL, bodyB: lLegR, stiffness: 0.04, damping: 0.02, length: 22 * scale, render: { visible: false } })
+    ];
+
+    const person = Composite.create({
+      bodies: [head, torso, uArmL, lArmL, uArmR, lArmR, uLegL, lLegL, uLegR, lLegR, footL, footR],
+      constraints: joints
+    });
+    Composite.add(world, person);
+    return person;
+  }
+
+  // ---------- Box ----------
+  function createBox(x, y) {
+    const b = Bodies.rectangle(x, y, 42, 42, {
+      density: 0.0018,
+      friction: 0.55,
+      restitution: 0.12,
+      chamfer: { radius: 3 },
+      render: { fillStyle: '#8b6b45' }
+    });
+    Composite.add(world, b);
+    return b;
+  }
+
+  // ---------- Bullet ----------
+  let gunMode = false;
+  let lastShot = 0;
+
+  function shoot(fromX, fromY, toX, toY) {
+    const now = performance.now();
+    if (now - lastShot < 160) return;
+    lastShot = now;
+
+    const ang = Math.atan2(toY - fromY, toX - fromX);
+    const spd = 32;
+    const bullet = Bodies.circle(fromX, fromY, 3.5, {
+      density: 0.012,
+      friction: 0.01,
+      restitution: 0.05,
+      render: { fillStyle: '#f5d76e' },
+      label: 'bullet'
+    });
+    Body.setVelocity(bullet, { x: Math.cos(ang) * spd, y: Math.sin(ang) * spd });
+    Composite.add(world, bullet);
+    setTimeout(() => Composite.remove(world, bullet), 2200);
+  }
+
+  // ---------- Mouse / Touch ----------
+  const mouse = Mouse.create(render.canvas);
+  const mouseConstraint = MouseConstraint.create(engine, {
+    mouse,
+    constraint: {
+      stiffness: 0.18,
+      damping: 0.1,
+      render: { visible: false }
+    }
+  });
+  Composite.add(world, mouseConstraint);
+  render.mouse = mouse;
+
+  Events.on(mouseConstraint, 'mousedown', (e) => {
+    if (!gunMode) return;
+    const p = e.mouse.position;
+    // Shoot from left side of screen toward touch
+    shoot(W * 0.12, H * 0.5, p.x, p.y);
+  });
+
+  // ---------- Crate buttons ----------
+  document.querySelectorAll('.crate-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const type = el.dataset.type;
+      if (type === 'human') {
+        createHuman(W * 0.35 + Math.random() * W * 0.3, 70);
+      } else if (type === 'box') {
+        createBox(W * 0.3 + Math.random() * W * 0.4, 50);
+      } else if (type === 'gun') {
+        gunMode = !gunMode;
+        el.style.background = gunMode ? '#3b4a5c' : '';
+        el.style.color = gunMode ? '#e8eaed' : '';
+        document.getElementById('hint').textContent = gunMode
+          ? 'Режим стрельбы · тапай куда стрелять'
+          : 'Тяни тело · Бери предметы справа';
+      } else if (type === 'clear') {
+        const all = Composite.allBodies(world);
+        all.forEach(b => { if (!b.isStatic) Composite.remove(world, b); });
+        const cons = Composite.allConstraints(world);
+        cons.forEach(c => {
+          if (c !== mouseConstraint.constraint) Composite.remove(world, c);
+        });
+      }
+    });
+  });
+
+  // ---------- First human ----------
+  createHuman(W * 0.45, 90);
+
+  // ---------- Resize ----------
+  function onResize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    render.canvas.width = W;
+    render.canvas.height = H;
+    render.options.width = W;
+    render.options.height = H;
+    Render.setPixelRatio(render, Math.min(window.devicePixelRatio || 1, 2));
+    checkOrient();
+  }
+  window.addEventListener('resize', () => setTimeout(onResize, 80));
+
+  // Prevent page scroll
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+})();
+</script>
+</body>
+</html>
